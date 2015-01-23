@@ -16,6 +16,8 @@
 @property (nonatomic, strong) UIColor *borderColor;
 @property (nonatomic, assign) CGFloat borderWidth;
 @property (nonatomic, assign) CGFloat cornerRadiusFactor;
+@property (nonatomic, assign) CGFloat horizontalPadding;
+@property (nonatomic, assign) CGFloat verticalPadding;
 
 - (id)initWithTextColor:(UIColor *)textColor
             gradientTop:(UIColor *)gradientTop
@@ -23,4 +25,13 @@
             borderColor:(UIColor *)borderColor
             borderWidth:(CGFloat)borderWidth
      cornerRadiusFactor:(CGFloat)cornerRadiusFactor;
+
+- (id)initWithTextColor:(UIColor *)textColor
+            gradientTop:(UIColor *)gradientTop
+         gradientBottom:(UIColor *)gradientBottom
+            borderColor:(UIColor *)borderColor
+            borderWidth:(CGFloat)borderWidth
+     cornerRadiusFactor:(CGFloat)cornerRadiusFactor
+      horizontalPadding:(CGFloat)horizontalPadding
+        verticalPadding:(CGFloat)verticalPadding;
 @end

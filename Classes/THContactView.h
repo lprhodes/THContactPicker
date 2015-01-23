@@ -10,6 +10,9 @@
 #import <QuartzCore/QuartzCore.h>
 #import "THContactViewStyle.h"
 
+#define kHorizontalPadding 3
+#define kVerticalPadding 2
+
 @class THContactView;
 @class THContactTextField;
 

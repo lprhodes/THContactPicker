@@ -15,9 +15,6 @@
 
 @implementation THContactView
 
-#define kHorizontalPadding 3
-#define kVerticalPadding 2
-
 #define kDefaultBorderWidth 1
 #define kDefaultCornerRadiusFactor 5
 
@@ -68,19 +65,23 @@
         // default styles
         if (style == nil) {
             style = [[THContactViewStyle alloc] initWithTextColor:k7ColorText
-                                                 gradientTop:k7ColorGradientTop
-                                              gradientBottom:k7ColorGradientBottom
-                                                 borderColor:k7ColorBorder
-                                                 borderWidth:k7DefaultBorderWidth
-                                          cornerRadiusFactor:k7DefaultCornerRadiusFactor];
+                                                      gradientTop:k7ColorGradientTop
+                                                   gradientBottom:k7ColorGradientBottom
+                                                      borderColor:k7ColorBorder
+                                                      borderWidth:k7DefaultBorderWidth
+                                               cornerRadiusFactor:k7DefaultCornerRadiusFactor
+                                                horizontalPadding:kHorizontalPadding
+                                                  verticalPadding:kVerticalPadding];
         }
         if (selectedStyle == nil) {
             selectedStyle = [[THContactViewStyle alloc] initWithTextColor:k7ColorSelectedText
-                                                         gradientTop:k7ColorSelectedGradientTop
-                                                      gradientBottom:k7ColorSelectedGradientBottom
-                                                         borderColor:k7ColorSelectedBorder
-                                                        borderWidth:k7DefaultBorderWidth
-                                                  cornerRadiusFactor:k7DefaultCornerRadiusFactor];
+                                                              gradientTop:k7ColorSelectedGradientTop
+                                                           gradientBottom:k7ColorSelectedGradientBottom
+                                                              borderColor:k7ColorSelectedBorder
+                                                              borderWidth:k7DefaultBorderWidth
+                                                       cornerRadiusFactor:k7DefaultCornerRadiusFactor
+                                                        horizontalPadding:kHorizontalPadding
+                                                          verticalPadding:kVerticalPadding];
         }
         
         self.style = style;
@@ -113,8 +114,8 @@
     tapGesture.numberOfTouchesRequired = 1;
     [self addGestureRecognizer:tapGesture];
     
-    self.maxWidth = 2 * kHorizontalPadding;
-    self.minWidth = 2 * kVerticalPadding;
+    self.maxWidth = 2 * self.selectedStyle.horizontalPadding;
+    self.minWidth = 2 * self.selectedStyle.verticalPadding;
     
     [self adjustSize];
     
@@ -125,11 +126,11 @@
     // Adjust the label frames
     [self.label sizeToFit];
     CGRect frame = self.label.frame;
-    frame.origin.x = kHorizontalPadding;
-    frame.origin.y = kVerticalPadding;
+    frame.origin.x = self.selectedStyle.horizontalPadding;
+    frame.origin.y = self.selectedStyle.verticalPadding;
     
-    CGFloat maxWidth = self.maxWidth - 2 * kHorizontalPadding;
-    CGFloat minWidth = self.minWidth - 2 * kHorizontalPadding;
+    CGFloat maxWidth = self.maxWidth - 2 * self.selectedStyle.horizontalPadding;
+    CGFloat minWidth = self.minWidth - 2 * self.selectedStyle.horizontalPadding;
     
     if (minWidth < maxWidth) {
         if (frame.size.width < minWidth) {
@@ -140,12 +141,12 @@
             }
         }
     }
-
+    
     self.label.frame = frame;
-
+    
     
     // Adjust view frame
-    self.bounds = CGRectMake(0, 0, frame.size.width + 2 * kHorizontalPadding, frame.size.height + 2 * kVerticalPadding);
+    self.bounds = CGRectMake(0, 0, frame.size.width + 2 * self.selectedStyle.horizontalPadding, frame.size.height + 2 * self.selectedStyle.verticalPadding);
     
     // Create gradient layer
     if (self.gradientLayer == nil){
@@ -153,7 +154,7 @@
         [self.layer insertSublayer:self.gradientLayer atIndex:0];
     }
     self.gradientLayer.frame = self.bounds;
-
+    
     // Round the corners
     CALayer *viewLayer = [self layer];
     viewLayer.masksToBounds = YES;
