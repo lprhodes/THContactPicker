@@ -65,23 +65,19 @@
         // default styles
         if (style == nil) {
             style = [[THContactViewStyle alloc] initWithTextColor:k7ColorText
-                                                      gradientTop:k7ColorGradientTop
-                                                   gradientBottom:k7ColorGradientBottom
-                                                      borderColor:k7ColorBorder
-                                                      borderWidth:k7DefaultBorderWidth
-                                               cornerRadiusFactor:k7DefaultCornerRadiusFactor
-                                                horizontalPadding:kHorizontalPadding
-                                                  verticalPadding:kVerticalPadding];
+                                                 gradientTop:k7ColorGradientTop
+                                              gradientBottom:k7ColorGradientBottom
+                                                 borderColor:k7ColorBorder
+                                                 borderWidth:k7DefaultBorderWidth
+                                          cornerRadiusFactor:k7DefaultCornerRadiusFactor];
         }
         if (selectedStyle == nil) {
             selectedStyle = [[THContactViewStyle alloc] initWithTextColor:k7ColorSelectedText
-                                                              gradientTop:k7ColorSelectedGradientTop
-                                                           gradientBottom:k7ColorSelectedGradientBottom
-                                                              borderColor:k7ColorSelectedBorder
-                                                              borderWidth:k7DefaultBorderWidth
-                                                       cornerRadiusFactor:k7DefaultCornerRadiusFactor
-                                                        horizontalPadding:kHorizontalPadding
-                                                          verticalPadding:kVerticalPadding];
+                                                         gradientTop:k7ColorSelectedGradientTop
+                                                      gradientBottom:k7ColorSelectedGradientBottom
+                                                         borderColor:k7ColorSelectedBorder
+                                                        borderWidth:k7DefaultBorderWidth
+                                                       cornerRadiusFactor:k7DefaultCornerRadiusFactor];
         }
         
         self.style = style;
@@ -95,12 +91,14 @@
     // Create Label
     self.label = [[UILabel alloc] init];
     self.label.backgroundColor = [UIColor clearColor];
-    if (self.showComma){
-        self.label.text = [NSString stringWithFormat:@"%@,", self.name];
-    } else {
-        self.label.text = self.name;
-    }
+    self.label.text = self.name;
     [self addSubview:self.label];
+    
+    self.commaLabel = [[UILabel alloc] init];
+    self.commaLabel.backgroundColor = [UIColor clearColor];
+    self.commaLabel.text = @",";
+    [self addSubview:self.commaLabel];
+    
     
     self.textField = [[THContactTextField alloc] init];
 	self.textField.autocorrectionType = UITextAutocorrectionTypeNo;
@@ -114,7 +112,7 @@
     tapGesture.numberOfTouchesRequired = 1;
     [self addGestureRecognizer:tapGesture];
     
-    self.maxWidth = 2 * self.selectedStyle.horizontalPadding;
+    self.maxWidth = 150.0f;
     self.minWidth = 2 * self.selectedStyle.verticalPadding;
     
     [self adjustSize];
@@ -125,25 +123,33 @@
 - (void)adjustSize {
     // Adjust the label frames
     [self.label sizeToFit];
+    
     CGRect frame = self.label.frame;
     frame.origin.x = self.selectedStyle.horizontalPadding;
     frame.origin.y = self.selectedStyle.verticalPadding;
+    
+    [self.commaLabel sizeToFit];
+    CGRect commaframe = self.commaLabel.frame;
     
     CGFloat maxWidth = self.maxWidth - 2 * self.selectedStyle.horizontalPadding;
     CGFloat minWidth = self.minWidth - 2 * self.selectedStyle.horizontalPadding;
     
     if (minWidth < maxWidth) {
-        if (frame.size.width < minWidth) {
-            frame.size.width = minWidth;
+        if ((frame.size.width + commaframe.size.width) < minWidth) {
+            frame.size.width = minWidth - commaframe.size.width;
         }else{
-            if (frame.size.width > maxWidth ) {
-                frame.size.width = maxWidth;
+            if ((frame.size.width + commaframe.size.width) > maxWidth) {
+                frame.size.width = maxWidth - commaframe.size.width;
             }
         }
     }
     
     self.label.frame = frame;
     
+    commaframe.origin.x = CGRectGetMaxX(frame) + self.selectedStyle.commaHorizontalPadding;
+    commaframe.origin.y = self.selectedStyle.verticalPadding;
+
+    self.commaLabel.frame = commaframe;
     
     // Adjust view frame
     self.bounds = CGRectMake(0, 0, frame.size.width + 2 * self.selectedStyle.horizontalPadding, frame.size.height + 2 * self.selectedStyle.verticalPadding);
@@ -153,8 +159,9 @@
         self.gradientLayer = [CAGradientLayer layer];
         [self.layer insertSublayer:self.gradientLayer atIndex:0];
     }
-    self.gradientLayer.frame = self.bounds;
     
+    self.gradientLayer.frame = self.bounds;
+
     // Round the corners
     CALayer *viewLayer = [self layer];
     viewLayer.masksToBounds = YES;
@@ -162,8 +169,16 @@
 
 - (void)setFont:(UIFont *)font {
     self.label.font = font;
+    self.commaLabel.font = font;
 
     [self adjustSize];
+}
+
+- (void)setShowComma:(BOOL)showComma
+{
+    _showComma = showComma;
+    
+    self.commaLabel.hidden = !showComma;
 }
 
 - (void)select {
@@ -175,7 +190,10 @@
     viewLayer.borderColor = self.selectedStyle.borderColor.CGColor;
     self.gradientLayer.colors = [NSArray arrayWithObjects:(id)[self.selectedStyle.gradientTop CGColor], (id)[self.selectedStyle.gradientBottom CGColor], nil];
     
+    self.commaLabel.hidden = YES;
+    
     self.label.textColor = self.selectedStyle.textColor;
+    self.commaLabel.textColor = self.selectedStyle.commaTextColor;
     self.layer.borderWidth = self.selectedStyle.borderWidth;
     if (self.selectedStyle.cornerRadiusFactor > 0) {
         self.layer.cornerRadius = self.bounds.size.height / self.selectedStyle.cornerRadiusFactor;
@@ -188,13 +206,24 @@
     [self.textField becomeFirstResponder];
 }
 
+- (THContactTextField *)currentStyle
+{
+    if (self.isSelected) {
+        return self.selectedStyle;
+    } else {
+        return self.style;
+    }
+}
+
 - (void)unSelect {
     CALayer *viewLayer = [self layer];
     viewLayer.borderColor = self.style.borderColor.CGColor;
-    
     self.gradientLayer.colors = [NSArray arrayWithObjects:(id)[self.style.gradientTop CGColor], (id)[self.style.gradientBottom CGColor], nil];
     
+    self.commaLabel.hidden = !self.showComma;
+    
     self.label.textColor = self.style.textColor;
+    self.commaLabel.textColor = self.style.commaTextColor;
     self.layer.borderWidth = self.style.borderWidth;
     if (self.style.cornerRadiusFactor > 0) {
         self.layer.cornerRadius = self.bounds.size.height / self.style.cornerRadiusFactor;

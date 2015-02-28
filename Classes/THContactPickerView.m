@@ -16,9 +16,9 @@
 	CGRect _frameOfLastView;
 }
 
-@property (nonatomic, strong) UIScrollView *scrollView;
 @property (nonatomic, strong) NSMutableDictionary *contacts;	// Dictionary to store THContactViews for each contacts
-@property (nonatomic, strong) NSMutableArray *contactKeys;      // an ordered set of the keys placed in the contacts dictionary
+
+@property (nonatomic, strong) UIScrollView *scrollView;
 @property (nonatomic, strong) UILabel *placeholderLabel;
 @property (nonatomic, strong) UILabel *promptLabel;
 @property (nonatomic, assign) CGFloat lineHeight;
@@ -78,7 +78,7 @@
     self.promptLabel.backgroundColor = [UIColor clearColor];
     self.promptLabel.text = nil;
     [self.promptLabel sizeToFit];
-    [self.scrollView addSubview:self.promptLabel];
+    [self addSubview:self.promptLabel];
     
     // Create TextView
     self.textField = [[THContactTextField alloc] init];
@@ -139,7 +139,22 @@
     [super setBackgroundColor:backgroundColor];
 }
 
+- (NSString *)textViewText
+{
+    return self.textField.text;
+}
+
+- (void)resetText
+{
+    self.textField.text = @"";
+}
+
 - (void)addContact:(id)contact withName:(NSString *)name {
+    [self addContact:contact withName:name animated:YES];
+}
+
+- (void)addContact:(id)contact withName:(NSString *)name animated:(BOOL)animated {
+    
     id contactKey = [NSValue valueWithNonretainedObject:contact];
     if ([self.contactKeys containsObject:contactKey]){
         NSLog(@"Cannot add the same object twice to ContactPickerView");
@@ -153,8 +168,8 @@
     
     self.textField.text = @"";
     
-    THContactView *contactView = [[THContactView alloc] initWithName:name style:self.contactViewStyle selectedStyle:self.contactViewSelectedStyle showComma:!self.limitToOne];
-    contactView.maxWidth = self.frame.size.width - self.promptLabel.frame.origin.x - 2 * kHorizontalPadding - 2 * kHorizontalSidePadding;
+    THContactView *contactView = [[THContactView alloc] initWithName:name style:self.contactViewStyle selectedStyle:self.contactViewSelectedStyle showComma:NO];
+    contactView.maxWidth = (self.frame.size.width - self.promptLabel.frame.origin.x) / 2 - 2 * kHorizontalPadding - 2 * kHorizontalSidePadding;
     contactView.minWidth = kTextViewMinWidth + 2 * kHorizontalPadding;
     contactView.keyboardAppearance = self.keyboardAppearance;
     contactView.delegate = self;
@@ -170,22 +185,66 @@
     }
 
 	// update the position of the contacts
+    [self updateCommas];
 	[self layoutContactViews];
 	
-    // update size of the scrollView
-	[UIView animateWithDuration:0.2 animations:^{
-		[self layoutScrollView];
-	} completion:^(BOOL finished) {
-		// scroll to bottom
-		_shouldSelectTextView = YES;
-		[self scrollToBottomWithAnimation:YES];
-		// after scroll animation [self selectTextView] will be called
-	}];
+    if (animated) {
+        // update size of the scrollView
+        [UIView animateWithDuration:0.2 animations:^{
+            [self layoutScrollView];
+        } completion:^(BOOL finished) {
+            // scroll to bottom
+            _shouldSelectTextView = YES;
+            [self scrollToBottomWithAnimation:animated];
+            // after scroll animation [self selectTextView] will be called
+        }];
+    } else {
+        [self layoutScrollView];
+        _shouldSelectTextView = YES;
+        [self scrollToBottomWithAnimation:animated];
+    }
+}
+
+- (BOOL)contactAlreadyExists:(id)contact
+{
+    id contactKey = [NSValue valueWithNonretainedObject:contact];
+    
+    if ([self.contactKeys containsObject:contactKey]) {
+        return YES;
+    }
+    
+    return NO;
+}
+
+- (void)updateCommas
+{
+    if (!self.limitToOne) {
+        //Hide comma for last item when not being edited
+        [self.contactKeys enumerateObjectsUsingBlock:^(id contactKey, NSUInteger idx, BOOL *stop) {
+            BOOL showComma = YES;
+            
+            if (self.contactKeys.count == (idx + 1) && !self.textField.isFirstResponder) {
+                showComma = NO;
+            }
+            
+            THContactView *contactView = [self.contacts objectForKey:contactKey];
+            contactView.showComma = showComma;
+        }];
+    }
+                
+    if (self.textField.isFirstResponder) {
+        [self.contactViewStyle revertToOriginalCommaTextColor];
+        [self.contactViewSelectedStyle revertToOriginalCommaTextColor];
+    } else {
+        self.contactViewStyle.commaTextColor = self.contactViewStyle.textColor;
+        self.contactViewSelectedStyle.commaTextColor = self.contactViewSelectedStyle.textColor;
+    }
+    
+    [self setContactViewStyle:self.contactViewStyle selectedStyle:self.contactViewSelectedStyle];
 }
 
 - (void)selectTextView {
     self.textField.hidden = NO;
-    [self.textField becomeFirstResponder];
 }
 
 - (void)removeAllContacts {
@@ -205,6 +264,13 @@
 
 - (void)removeContact:(id)contact {
     id contactKey = [NSValue valueWithNonretainedObject:contact];
+    
+    if ([self.delegate respondsToSelector:@selector(contactPickerDidRemoveContact:)]){
+        
+        __weak id weakContact = contactKey;
+        [self.delegate contactPickerDidRemoveContact:weakContact];
+    }
+    
 	[self removeContactByKey:contactKey];
 }
 
@@ -212,6 +278,25 @@
     self.placeholderLabel.text = text;
 
     [self setNeedsLayout];
+}
+
+- (BOOL)isFirstResponder
+{
+    return self.textField.isFirstResponder;
+}
+
+- (BOOL)canBecomeFirstResponder
+{
+    return self.textField.canBecomeFirstResponder;
+}
+
+- (BOOL)canResignFirstResponder
+{
+    return self.textField.canResignFirstResponder;
+}
+
+- (BOOL)becomeFirstResponder {
+    return [self.textField becomeFirstResponder];
 }
 
 - (void)resignFirstResponder {
@@ -226,7 +311,7 @@
 
 - (void)setContactViewStyle:(THContactViewStyle *)style selectedStyle:(THContactViewStyle *)selectedStyle {
     self.contactViewStyle = style;
-    self.textField.textColor = style.textColor;
+    self.textField.textColor = style.typedTextColor;
     self.contactViewSelectedStyle = selectedStyle;
 
     for (id contactKey in self.contactKeys){
@@ -242,10 +327,6 @@
             [contactView unSelect];
         }
     }
-}
-
-- (BOOL)becomeFirstResponder {
-    return [self.textField becomeFirstResponder];
 }
 
 #pragma mark - Private functions
@@ -271,11 +352,13 @@
         return;
     }
     
-    if ([self.delegate respondsToSelector:@selector(contactPickerDidRemoveContact:)]){
-        [self.delegate contactPickerDidRemoveContact:[contact nonretainedObjectValue]];
-    }
-    
     [self removeContactByKey:contact];
+    
+    if ([self.delegate respondsToSelector:@selector(contactPickerDidRemoveContact:)]){
+        
+        __weak id weakContact = contact;
+        [self.delegate contactPickerDidRemoveContact:weakContact];
+    }
 }
 
 - (void)removeContactByKey:(id)contactKey {
@@ -288,7 +371,7 @@
     [self.contactKeys removeObject:contactKey];
 
 	self.textField.text = @"";
-	[self selectTextView];
+    [self selectTextView];
 
 	// update layout
 	[self layoutContactViews];
@@ -350,7 +433,7 @@
 			} else {
 				// No space on current line, jump to next line
 				_lineCount++;
-				contactViewFrame.origin.x = kHorizontalSidePadding;
+				contactViewFrame.origin.x = [self firstLineXOffset];
 				contactViewFrame.origin.y = (_lineCount * self.lineHeight) + kVerticalPadding + self.verticalPadding;
 			}
 		}
@@ -364,33 +447,44 @@
 	}
 	
 	// Now add the textView after the contact views
-	CGFloat minWidth = kTextViewMinWidth + 2 * kHorizontalPadding;
+    CGFloat minWidth = 0;// kTextViewMinWidth + (2 * kHorizontalPadding);
 	CGFloat textViewHeight = self.lineHeight - 2 * kVerticalPadding;
 	CGRect textViewFrame = CGRectMake(0, 0, self.textField.frame.size.width, textViewHeight);
 	
 	// Check if we can add the text field on the same line as the last contact view
-	if (self.frame.size.width - kHorizontalSidePadding - _frameOfLastView.origin.x - _frameOfLastView.size.width - minWidth >= 0){ // add to the same line
-		textViewFrame.origin.x = _frameOfLastView.origin.x + _frameOfLastView.size.width + kHorizontalPadding;
+    
+    CGSize textSize = [self.textField.text sizeWithAttributes:@{ NSFontAttributeName : self.textField.font}];
+    
+    BOOL textFieldTooSmall = NO;
+    
+    if (textSize.width > CGRectGetWidth(self.textField.bounds) - 1) {
+        textFieldTooSmall = YES;
+    }
+    
+    if (!textFieldTooSmall && (self.frame.size.width - kHorizontalSidePadding - _frameOfLastView.origin.x - _frameOfLastView.size.width - minWidth >= 0)){ // add to the same line
+		textViewFrame.origin.x = _frameOfLastView.origin.x + _frameOfLastView.size.width + kHorizontalPadding + self.contactViewStyle.horizontalPadding;
 		textViewFrame.size.width = self.frame.size.width - textViewFrame.origin.x;
 	} else {
 		// place text view on the next line
 		_lineCount++;
 		
-		textViewFrame.origin.x = kHorizontalSidePadding;
+		textViewFrame.origin.x = kHorizontalSidePadding + self.contactViewStyle.horizontalPadding;
 		textViewFrame.size.width = self.frame.size.width - 2 * kHorizontalPadding;
 		
 		if (self.contacts.count == 0){
 			_lineCount = 0;
-			textViewFrame.origin.x = [self firstLineXOffset];
-			textViewFrame.size.width = self.bounds.size.width - textViewFrame.origin.x;
-		}
+        }
+        
+        textViewFrame.origin.x = [self firstLineXOffset] + self.contactViewStyle.horizontalPadding;
+        textViewFrame.size.width = self.bounds.size.width - textViewFrame.origin.x;
+		
 	}
 	
-	textViewFrame.origin.y = _lineCount * self.lineHeight + kVerticalPadding + self.verticalPadding;
+	textViewFrame.origin.y = _lineCount * self.lineHeight + self.contactViewStyle.verticalPadding + self.verticalPadding;
 	self.textField.frame = textViewFrame;
 	
 	// Add text view if it hasn't been added
-	self.textField.center = CGPointMake(self.textField.center.x, _lineCount * self.lineHeight + textViewHeight / 2 + kVerticalPadding + self.verticalPadding);
+	self.textField.center = CGPointMake(self.textField.center.x, _lineCount * self.lineHeight + textViewHeight / 2 + kVerticalPadding + self.verticalPadding + floorf(self.contactViewStyle.verticalPadding / 2));
 	
 	if (self.textField.superview == nil){
 		[self.scrollView addSubview:self.textField];
@@ -435,9 +529,14 @@
 		
 		// Adjust scroll view height
 		frame.size.height = newHeight;
+        
+        if ([self.delegate respondsToSelector:@selector(contactPickerWillResize:toSize:)]){
+            [self.delegate contactPickerWillResize:self toSize:frame.size];
+        }
+        
 		self.scrollView.frame = frame;
 		
-		if ([self.delegate respondsToSelector:@selector(contactPickerDidResize:)]){
+        if ([self.delegate respondsToSelector:@selector(contactPickerDidResize:)]){
 			[self.delegate contactPickerDidResize:self];
 		}
 	}
@@ -452,6 +551,8 @@
         // Capture "delete" key press when cell is empty
         self.selectedContactView = [self.contacts objectForKey:[self.contactKeys lastObject]];
         [self.selectedContactView select];
+        [self setNeedsLayout];
+        [self scrollToBottomWithAnimation:YES];
     } else {
         if ([self.delegate respondsToSelector:@selector(contactPickerTextViewDidChange:)]){
             [self.delegate contactPickerTextViewDidChange:textView.text];
@@ -470,6 +571,17 @@
         self.placeholderLabel.hidden = YES;
     }
     
+    CGSize textSize = [textView.text sizeWithAttributes:@{ NSFontAttributeName : textView.font}];
+    CGFloat textWidth = textSize.width;
+    
+    CGFloat padding =  1.0f;
+    CGFloat width =  CGRectGetWidth(textView.bounds);
+    if (textWidth > width - padding) {
+        [self setNeedsLayout];
+        [self scrollToBottomWithAnimation:NO];
+    }
+    
+    
     CGPoint offset = self.scrollView.contentOffset;
     offset.y = self.scrollView.contentSize.height - self.scrollView.frame.size.height;
     if (offset.y > self.scrollView.contentOffset.y){
@@ -482,6 +594,17 @@
 		return [self.delegate contactPickerTextFieldShouldReturn:textField];
 	}
 	return YES;
+}
+
+- (void)textFieldDidBeginEditing:(UITextField *)textField
+{
+    [self.delegate contactPickerDidBecomeFirstResponder:self];
+    [self updateCommas];
+}
+
+- (void)textFieldDidEndEditing:(UITextField *)textField
+{
+    [self updateCommas];
 }
 
 #pragma mark - THContactViewDelegate Functions
@@ -511,6 +634,7 @@
 
 - (void)contactViewShouldBeRemoved:(THContactView *)contactView {
     [self removeContactView:contactView];
+    [self.textField becomeFirstResponder];
 }
 
 #pragma mark - Gesture Recognizer

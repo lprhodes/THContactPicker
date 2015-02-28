@@ -10,9 +10,6 @@
 #import <QuartzCore/QuartzCore.h>
 #import "THContactViewStyle.h"
 
-#define kHorizontalPadding 3
-#define kVerticalPadding 2
-
 @class THContactView;
 @class THContactTextField;
 
@@ -28,6 +25,7 @@
 
 @property (nonatomic, strong) NSString *name;
 @property (nonatomic, strong) UILabel *label;
+@property (nonatomic, strong) UILabel *commaLabel;
 @property (nonatomic, strong) THContactTextField *textField; // used to capture keyboard touches when view is selected
 @property (nonatomic, assign) BOOL isSelected;
 @property (nonatomic, assign) BOOL showComma;
@@ -38,6 +36,7 @@
 
 @property (nonatomic, strong) THContactViewStyle *style;
 @property (nonatomic, strong) THContactViewStyle *selectedStyle;
+@property (nonatomic, readonly) THContactViewStyle *currentStyle;
 
 - (id)initWithName:(NSString *)name;
 - (id)initWithName:(NSString *)name style:(THContactViewStyle *)style selectedStyle:(THContactViewStyle *)selectedStyle;

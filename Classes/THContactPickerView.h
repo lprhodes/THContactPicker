@@ -15,8 +15,10 @@
 
 - (void)contactPickerTextViewDidChange:(NSString *)textViewText;
 - (void)contactPickerDidRemoveContact:(id)contact;
+- (void)contactPickerWillResize:(THContactPickerView *)contactPickerView toSize:(CGSize)size;
 - (void)contactPickerDidResize:(THContactPickerView *)contactPickerView;
 - (BOOL)contactPickerTextFieldShouldReturn:(UITextField *)textField;
+- (void)contactPickerDidBecomeFirstResponder:(THContactPickerView *)contactPickerView;
 
 @end
 
@@ -30,7 +32,13 @@
 @property (nonatomic, assign) NSInteger maxNumberOfLines;	// maximum number of lines the view will display before scrolling
 @property (nonatomic, strong) UIFont *font;
 
+@property (nonatomic, strong) NSMutableArray *contactKeys;      // an ordered set of the keys placed in the contacts dictionary
+
+@property (nonatomic, readonly) NSString *textViewText;
+
 - (void)addContact:(id)contact withName:(NSString *)name;
+- (void)addContact:(id)contact withName:(NSString *)name animated:(BOOL)animated;
+- (BOOL)contactAlreadyExists:(id)contact;
 - (void)removeContact:(id)contact;
 - (void)removeAllContacts;
 - (void)resignFirstResponder;
@@ -42,5 +50,8 @@
 - (void)setPromptLabelText:(NSString *)text;
 - (void)setPromptLabelTextColor:(UIColor *)color;
 - (void)setFont:(UIFont *)font;
+- (void)resetText;
+
+- (void)scrollToBottomWithAnimation:(BOOL)animated;
 
 @end
