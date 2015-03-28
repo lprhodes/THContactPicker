@@ -113,7 +113,7 @@
     [self.textField sizeToFit];
     
     self.promptLabel.font = font;
-    self.placeholderLabel.font = font;
+    self.placeholderLabel.font = [font fontWithSize:font.pointSize - 2.0f];
     [self updateLabelFrames];
 	
 	[self setNeedsLayout];
@@ -398,7 +398,7 @@
 - (void)updateLabelFrames {
     [self.promptLabel sizeToFit];
     self.promptLabel.frame = CGRectMake(kHorizontalSidePadding, self.verticalPadding, self.promptLabel.frame.size.width, self.lineHeight);
-    self.placeholderLabel.frame = CGRectMake([self firstLineXOffset] + 3, self.verticalPadding, self.frame.size.width, self.lineHeight);
+    self.placeholderLabel.frame = CGRectMake([self firstLineXOffset] + 5, self.verticalPadding + 1.0f, self.frame.size.width, self.lineHeight);
 }
 
 - (CGFloat)firstLineXOffset {
@@ -448,7 +448,7 @@
 	
 	// Now add the textView after the contact views
     CGFloat minWidth = 0;// kTextViewMinWidth + (2 * kHorizontalPadding);
-	CGFloat textViewHeight = self.lineHeight - 2 * kVerticalPadding;
+	CGFloat textViewHeight = self.lineHeight - 2 * kVerticalPadding + 16.0f;
 	CGRect textViewFrame = CGRectMake(0, 0, self.textField.frame.size.width, textViewHeight);
 	
 	// Check if we can add the text field on the same line as the last contact view
@@ -480,11 +480,11 @@
 		
 	}
 	
-	textViewFrame.origin.y = _lineCount * self.lineHeight + self.contactViewStyle.verticalPadding + self.verticalPadding;
+    textViewFrame.origin.y = (_lineCount * self.lineHeight) + self.contactViewStyle.verticalPadding + self.verticalPadding - 8.0f;;
 	self.textField.frame = textViewFrame;
 	
 	// Add text view if it hasn't been added
-	self.textField.center = CGPointMake(self.textField.center.x, _lineCount * self.lineHeight + textViewHeight / 2 + kVerticalPadding + self.verticalPadding + floorf(self.contactViewStyle.verticalPadding / 2));
+	self.textField.center = CGPointMake(self.textField.center.x, _lineCount * self.lineHeight + textViewHeight / 2 + kVerticalPadding + self.verticalPadding + floorf(self.contactViewStyle.verticalPadding / 2) - 8.0f);
 	
 	if (self.textField.superview == nil){
 		[self.scrollView addSubview:self.textField];
