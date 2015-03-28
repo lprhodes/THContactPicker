@@ -1,6 +1,8 @@
 THContactPicker
 ===============
 
+Note: This fork of THContactPicker attempts to more accurately reproduce the picker used by Facebook.
+
 THContactPicker is an iOS view used for selecting contacts. It is built to mimic the contact selecting functionality in the iOS Mail app. It also supports customization for different styling requirements. 
 
 ![Screenshot](https://raw.githubusercontent.com/tristanhimmelman/THContactPicker/master/screenshot.png)
